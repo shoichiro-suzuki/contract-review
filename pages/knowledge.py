@@ -2,6 +2,8 @@ import streamlit as st
 from api.knowledge_api import KnowledgeAPI
 import uuid
 
+st.set_page_config(layout="wide")
+
 st.title("ナレッジ管理")
 
 api = KnowledgeAPI()
@@ -37,7 +39,9 @@ with left_col:
     if st.button("検索"):
         ctype = None if contract_filter == "すべて" else contract_filter
         try:
-            st.session_state["knowledge_list"] = api.get_knowledge_list(ctype, search_text or None)
+            st.session_state["knowledge_list"] = api.get_knowledge_list(
+                ctype, search_text or None
+            )
         except Exception:
             st.session_state["knowledge_list"] = []
 
@@ -96,9 +100,11 @@ with right_col:
             contract_type = st.selectbox(
                 "契約種別",
                 type_names,
-                index=type_names.index(selected.get("contract_type", type_names[0]))
-                if selected.get("contract_type", type_names[0]) in type_names
-                else 0,
+                index=(
+                    type_names.index(selected.get("contract_type", type_names[0]))
+                    if selected.get("contract_type", type_names[0]) in type_names
+                    else 0
+                ),
             )
             title = st.text_area("タイトル", selected.get("knowledge_title", ""))
             review = st.text_area("審査観点", selected.get("review_points", ""))
@@ -112,7 +118,8 @@ with right_col:
                 "改訂", disabled=selected.get("approval_status") != "approved"
             )
             apply_btn = st.form_submit_button(
-                "承認申請", disabled=selected.get("approval_status") not in ("draft", "submitted")
+                "承認申請",
+                disabled=selected.get("approval_status") not in ("draft", "submitted"),
             )
             approve_btn = st.form_submit_button(
                 "承認", disabled=selected.get("approval_status") != "submitted"
