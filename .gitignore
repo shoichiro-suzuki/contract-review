@@ -5,6 +5,7 @@ VoiceMe/
 契約書サンプル/
 logs/
 old_pyside6/
+Examination_data_sample.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
