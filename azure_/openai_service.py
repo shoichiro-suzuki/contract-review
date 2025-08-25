@@ -1,6 +1,22 @@
 # pip install openai
 # pip install python-dotenv
 
+from dotenv import load_dotenv
+from openai import AzureOpenAI
+import os
+import streamlit as st
+
+
+@st.cache_resource
+def get_openai_client():
+    """OpenAIクライアントをキャッシュして返す"""
+    load_dotenv()
+    return AzureOpenAI(
+        api_key=os.getenv("OPENAI_API_KEY"),
+        api_version=os.getenv("OPENAI_API_VERSION"),
+        azure_endpoint=os.getenv("OPENAI_API_BASE"),
+    )
+
 
 class AzureOpenAIService:
     """
@@ -9,19 +25,7 @@ class AzureOpenAIService:
     """
 
     def __init__(self):
-        from dotenv import load_dotenv
-        from openai import AzureOpenAI
-        import os
-
-        load_dotenv()
-        self.os = os
-
-        # 通常用クライアント
-        self.client = AzureOpenAI(
-            api_key=os.getenv("OPENAI_API_KEY"),
-            api_version="2024-12-01-preview",
-            azure_endpoint=os.getenv("OPENAI_API_BASE"),
-        )
+        self.client = get_openai_client()
 
     def get_emb_3_small(self, doc):
         response = (

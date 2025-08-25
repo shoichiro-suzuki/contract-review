@@ -188,14 +188,26 @@ def main():
         # ---- フィルタUI（入力のたびに反映）----
         st.markdown("#### フィルタ機能")
         contract_filter = st.selectbox(
-            "契約種別", ["すべて"] + type_names, key="contract_filter"
+            "契約種別",
+            ["すべて"] + type_names,
+            key="contract_filter",
+            on_change=lambda: st.rerun(),
         )
-        search_text = st.text_input("検索（番号/タイトル/本文に部分一致）", key="q")
+        search_text = st.text_input(
+            "検索（番号/タイトル/本文に部分一致）",
+            key="q",
+            on_change=lambda: st.rerun(),
+        )
 
         # 並び順（任意：番号降順/昇順）
-        sort_key = st.selectbox("並び順", ["番号 降順", "番号 昇順"], index=1)
+        sort_key = st.selectbox(
+            "並び順", ["番号 降順", "番号 昇順"], index=1, on_change=lambda: st.rerun()
+        )
         page_size = st.selectbox(
-            "1ページの件数", [10, 20, 50], index=[10, 20, 50].index(PAGE_SIZE_DEFAULT)
+            "1ページの件数",
+            [10, 20, 50],
+            index=[10, 20, 50].index(PAGE_SIZE_DEFAULT),
+            on_change=lambda: st.rerun(),
         )
         st.session_state["page_size"] = page_size
 

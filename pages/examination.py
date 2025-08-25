@@ -2,6 +2,7 @@ import streamlit as st
 from api.contract_api import ContractAPI
 from api.knowledge_api import KnowledgeAPI
 from api.examination_api import examination_api
+from api.match_cl_and_kn import matching_clause_and_knowledge
 from services.document_input import extract_text_from_document
 import tempfile
 import os
@@ -18,7 +19,8 @@ def main():
         st.session_state["knowledge_api"] = KnowledgeAPI()
     if "knowledge_all" not in st.session_state:
         try:
-            st.session_state["knowledge_all"] = api.get_knowledge_list()
+            kn_api = st.session_state["knowledge_api"]
+            st.session_state["knowledge_all"] = kn_api.get_knowledge_list()
         except Exception:
             st.session_state["knowledge_all"] = []
 
@@ -33,15 +35,17 @@ def main():
         st.session_state["exam_background"] = ""
     if "exam_title" not in st.session_state:
         st.session_state["exam_title"] = ""
-    if "exam_intro" not in st.session_state:
-        st.session_state["exam_intro"] = ""
     if "exam_clauses" not in st.session_state:
         st.session_state["exam_clauses"] = []
+    if "exam_intro" not in st.session_state:
+        st.session_state["exam_intro"] = ""
     if "exam_page_status" not in st.session_state:
         st.session_state["exam_page_status"] = "start"
 
     # --- file upload -----------------------------------------------------------
-    uploaded = st.file_uploader("契約ファイル選択")
+    uploaded = st.file_uploader(
+        "契約ファイル選択", type=[".docx", ".pdf"], accept_multiple_files=False
+    )
     if st.button("契約案から条文抽出", disabled=uploaded is None):
         if uploaded is not None:
             with st.spinner("解析中...", show_time=True):
@@ -124,11 +128,46 @@ def main():
         with col_background:
             st.text_area("背景情報", height=75, key="exam_background")
 
-        st.text_area("前文", height=75, key="exam_intro")
+        # --- introductionを条項リストの1つ目として表示 ---
+        st.subheader("条文")
+        # introduction部分
+        col_intro_num, col_intro_clause = st.columns([1, 9])
+        with col_intro_num:
+            st.text_input(
+                "条項番号",
+                value="前文",
+                key="exam_clause_number_intro",
+                disabled=True,
+            )
+        with col_intro_clause:
+            st.text_area(
+                "条文",
+                value=st.session_state.get("exam_intro", ""),
+                key="exam_clause_intro",
+                height=75,
+            )
+            # 審査結果（懸念事項）の表示（introduction用）
+            if st.session_state.get("analyzed_clauses"):
+                for analyzed in st.session_state["analyzed_clauses"]:
+                    if analyzed.get("clause_number") == "前文":
+                        if analyzed.get("amendment_clause"):
+                            st.markdown("---")
+                            st.text_area(
+                                "修正条文：",
+                                f"{analyzed.get('amendment_clause', '')}",
+                                height=75,
+                            )
+                            st.markdown("**懸念事項：**")
+                            st.markdown(
+                                analyzed.get("concern", "").replace("\n", "<br>"),
+                                unsafe_allow_html=True,
+                            )
+                        else:
+                            st.markdown("---")
+                            st.markdown("懸念事項なし")
         st.markdown("---")
 
-        # --- clauses ---------------------------------------------------------------
-        st.subheader("条文")
+        # 通常の条項リスト
         for idx, clause in enumerate(st.session_state["exam_clauses"]):
             col_num, col_clause = st.columns([1, 9])
             with col_num:
@@ -151,18 +190,11 @@ def main():
                         if analyzed.get("clause_number") == clause.get("clause_number"):
                             if analyzed.get("amendment_clause"):
                                 st.markdown("---")
-                                # st.markdown("**修正条文：**")
                                 st.text_area(
                                     "修正条文：",
                                     f"{analyzed.get('amendment_clause', '')}",
                                     height="content",
                                 )
-                                # st.markdown(
-                                #     analyzed.get("amendment_clause", "").replace(
-                                #         "\n", "<br>"
-                                #     ),
-                                #     unsafe_allow_html=True,
-                                # )
                                 st.markdown("**懸念事項：**")
                                 st.markdown(
                                     analyzed.get("concern", "").replace("\n", "<br>"),
@@ -176,6 +208,11 @@ def main():
 
         def collect_exam_clauses():
             clauses = []
+            intro_clause = {
+                "clause_number": "前文",
+                "clause": st.session_state.get("exam_intro", ""),
+            }
+            clauses.append(intro_clause)
             for idx in range(len(st.session_state["exam_clauses"])):
                 clauses.append(
                     {
@@ -199,23 +236,26 @@ def main():
                 for p in st.session_state["exam_partys"].split(",")
                 if p.strip()
             ]
-            introduction = st.session_state["exam_intro"]
             title = st.session_state["exam_title"]
             clauses = collect_exam_clauses()
+            _, clauses_augmented, _ = matching_clause_and_knowledge(
+                st.session_state["knowledge_all"], clauses
+            )
             with st.spinner("審査中...", show_time=True):
                 try:
                     analyzed_clauses = examination_api(
                         contract_type=contract_type,
                         background_info=background_info,
                         partys=partys,
-                        introduction=introduction,
                         title=title,
-                        clauses=clauses,
+                        clauses=clauses_augmented,
                         knowledge_all=st.session_state["knowledge_all"],
                     )
                     if not analyzed_clauses:
                         st.info("審査結果がありません。")
                     else:
+                        # print("analyzed_clauses:")
+                        # print(analyzed_clauses)
                         st.session_state["analyzed_clauses"] = analyzed_clauses
                         st.session_state["exam_page_status"] = "examination"
                         st.rerun()

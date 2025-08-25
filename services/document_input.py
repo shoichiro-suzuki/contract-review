@@ -2,7 +2,7 @@ def extract_text_from_document(file_path: str) -> dict:
     import os
     import mimetypes
     from docx import Document
-    from azure_.documentintelligence import DocumentIntelligenceOCR
+    from azure_.documentintelligence import get_document_intelligence_ocr
     from azure_.openai_service import AzureOpenAIService
     import re
     import json
@@ -13,8 +13,8 @@ def extract_text_from_document(file_path: str) -> dict:
     if ext == ".docx":
         doc = Document(file_path)
         text = "\n".join([p.text for p in doc.paragraphs])
-    elif ext in [".pdf", ".png", ".jpg", ".jpeg", ".bmp", ".tiff"]:
-        ocr = DocumentIntelligenceOCR()
+    elif ext in [".pdf"]:
+        ocr = get_document_intelligence_ocr()
         result = ocr.analyze_document(file_path)
         text = getattr(result, "content", "")
         # OCR後、機械的なチャンキング前に <!-- ... --> 形式のコメントをすべて削除

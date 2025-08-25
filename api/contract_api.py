@@ -70,6 +70,7 @@ class ContractAPI:
                 c.knowledge_number,
                 c.version,
                 c.contract_type,
+                c.target_clause,
                 c.knowledge_title,
                 c.review_points,
                 c.action_plan,

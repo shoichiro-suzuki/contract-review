@@ -13,17 +13,22 @@ from azure.cosmos.exceptions import (
 import os
 import uuid
 from dotenv import load_dotenv
+import streamlit as st
+
+
+@st.cache_resource
+def get_cosmosdb_client():
+    """CosmosDBクライアントをキャッシュして返す"""
+    load_dotenv()
+    endpoint = os.getenv("COSMOSDB_CORE_ENDPOINT")
+    key = os.getenv("COSMOSDB_CORE_API_KEY")
+    return CosmosClient(url=endpoint, credential=key)
 
 
 class AzureCosmosDB:
     def __init__(self):
-        """CosmosDBクライアントの初期化"""
-        load_dotenv()
-        self.endpoint = os.getenv("COSMOSDB_CORE_ENDPOINT")
-        self.key = os.getenv("COSMOSDB_CORE_API_KEY")
-
-        # CosmosDBクライアントの初期化
-        self.client = CosmosClient(url=self.endpoint, credential=self.key)
+        """CosmosDBクライアントの初期化（@st.cache_resource経由のみ）"""
+        self.client = get_cosmosdb_client()
 
     # 既存のユーティリティメソッド -------------------
 
